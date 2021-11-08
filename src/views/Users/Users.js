@@ -45,6 +45,8 @@ function UsersList({ enqueueSnackbar }) {
   const [open, setOpen] = React.useState(false);
   const [control, setControl] = React.useState(false);
 
+  const [search, setSearch] = React.useState("");
+  const [defaultData, setDefaultData] = React.useState([]);
   const [data, setData] = React.useState([]);
 
   const initialValues = {
@@ -66,8 +68,8 @@ function UsersList({ enqueueSnackbar }) {
     complement: "",
   };
   const [values, setValues] = React.useState(initialValues);
-  const [patients, setPatients] = React.useState([]);
   const [address, setAddress] = React.useState(initialAddress);
+  const [patients, setPatients] = React.useState([]);
 
   const options = [
     { id: 1, name: 'Dakota Rice' },
@@ -77,7 +79,10 @@ function UsersList({ enqueueSnackbar }) {
   ];
 
   const getDataTable = () => {
-    getAll().then(({data}) => setData(data.data));
+    getAll().then(({data}) => {
+      setData(data.data);
+      setDefaultData(data.data);
+    });
   };
 
   const handleClean = () => {
@@ -98,6 +103,21 @@ function UsersList({ enqueueSnackbar }) {
 
   const handleChangeAutoComplete = (event, newInputValue) => {
     setPatients(newInputValue);
+  };
+
+  const handleChangeSearch = (event) => {
+    setSearch(event.target.value);
+    if (event.target.value === "") handleSearch(event.target.value);
+  };
+
+  const handleSearch = (aux = search) => {
+    if (aux === "") {
+      setData(defaultData);
+      return;
+    }
+    const text = search.toUpperCase();
+    const tableData = data.filter((d) => d.name.toUpperCase().includes(text));
+    setData(tableData);
   };
   
   const handleModalUser = () => {
@@ -525,13 +545,16 @@ function UsersList({ enqueueSnackbar }) {
                     className: classes.margin + " " + classes.search,
                   }}
                   inputProps={{
+                    type: "search",
                     placeholder: "Pesquisar",
                     inputProps: {
                       "aria-label": "Pesquisar",
                     },
+                    onChange: handleChangeSearch
                   }}
                 />
-                <Button color="white" aria-label="edit" justIcon round>
+                <Button color="white" aria-label="edit" justIcon round
+                  onClick={handleSearch}>
                   <Search />
                 </Button>
               </div>

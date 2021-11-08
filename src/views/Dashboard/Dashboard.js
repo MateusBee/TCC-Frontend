@@ -52,6 +52,7 @@ function Dashboard({ enqueueSnackbar }) {
             className: classes.margin + " " + classes.search,
           }}
           inputProps={{
+            type: "search",
             placeholder: "Pesquisar",
             inputProps: {
               "aria-label": "Pesquisar",

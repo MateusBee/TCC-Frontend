@@ -34,6 +34,8 @@ function MedicationList({ enqueueSnackbar }) {
   const [open, setOpen] = React.useState(false);
   const [control, setControl] = React.useState(false);
 
+  const [search, setSearch] = React.useState("");
+  const [defaultData, setDefaultData] = React.useState([]);
   const [data, setData] = React.useState([]);
   
   const initialValues = { name: "", form: "", type: "", url: "" };
@@ -44,8 +46,36 @@ function MedicationList({ enqueueSnackbar }) {
     setValues({ ...values, [name]: event.target.value});
   };
 
+  const handleChangeSearch = (event) => {
+    setSearch(event.target.value);
+    if (event.target.value === "") handleSearch(event.target.value);
+  };
+
+  const handleSearch = (aux = search) => {
+    if (aux === "") {
+      setData(defaultData);
+      return;
+    }
+    const text = search.toUpperCase();
+    const tableData = data.filter((d) => d.name.toUpperCase().includes(text));
+    setData(tableData);
+  };
+
+  const handleFormatEdit = (current) => {
+    setValues({
+      _id: current._id,
+      name: current.name,
+      form: current.form,
+      type: current.type,
+      url: current.url ?? "",
+    });
+  };
+
   const getDataTable = () => {
-    getAll().then(({data}) => setData(data.data));
+    getAll().then(({data}) => {
+      setData(data.data);
+      setDefaultData(data.data);
+    });
   };
 
   const handleModalMedication = () => {
@@ -228,13 +258,16 @@ function MedicationList({ enqueueSnackbar }) {
                     className: classes.margin + " " + classes.search,
                   }}
                   inputProps={{
+                    type: "search",
                     placeholder: "Pesquisar",
                     inputProps: {
                       "aria-label": "Pesquisar",
                     },
+                    onChange: handleChangeSearch
                   }}
                 />
-                <Button color="white" aria-label="edit" justIcon round>
+                <Button color="white" aria-label="edit" justIcon round
+                  onClick={handleSearch}>
                   <Search />
                 </Button>
               </div>
@@ -250,7 +283,7 @@ function MedicationList({ enqueueSnackbar }) {
                   { name: "Ações", width: 50 },]}
                 tablecells={["name", "form", "type", "url"]}
                 tableData={data}
-                setCurrent={setValues}
+                setCurrent={handleFormatEdit}
                 actions={
                   <>
                     <Tooltip

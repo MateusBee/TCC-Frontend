@@ -10,6 +10,9 @@ import TableRow from "@material-ui/core/TableRow";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
 import TablePagination from "@material-ui/core/TablePagination";
+import Tooltip from "@material-ui/core/Tooltip";
+import IconButton from "@material-ui/core/IconButton";
+import Link from "@material-ui/core/Link";
 // core components
 import styles from "assets/jss/material/components/tableStyle.js";
 
@@ -24,12 +27,23 @@ export default function CustomTable(props) {
     tableHeaderColor,
     actions,
     setCurrent = () => {},
+    showFile = null,
+    handleShowFile = () => {},
   } = props;
 
+  const [data, setData] = React.useState([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
-  const handleChangePage = (event, newPage) => {
+  const handleChangePage = (event, newPage = 0) => {
+    if (newPage == 0) {
+      const array = tableData.slice(0, rowsPerPage);
+      setData(array);
+    } else {
+      const from = (newPage * rowsPerPage);
+      const to = tableData.length < from + rowsPerPage ? tableData.length : from + rowsPerPage;
+      setData(tableData.slice(from, to));
+    }
     setPage(newPage);
   };
 
@@ -41,6 +55,13 @@ export default function CustomTable(props) {
   const handleChangeCurrent = (current) => {
     setCurrent(current);
   };
+
+  const handleOpenUrl = (current) => {
+    const { url } = current;
+    window.open(url);
+  };
+
+  React.useEffect(() => { handleChangePage() }, [tableData, rowsPerPage]);
 
   return (
     <div className={classes.tableResponsive}>
@@ -63,20 +84,43 @@ export default function CustomTable(props) {
           </TableHead>
         ) : null}
         <TableBody>
-          {tableData.map((data, key) => {
+          {data.map((data, key) => {
             return (
               <TableRow key={key} className={classes.tableBodyRow}>
                 {tablecells.map((prop, key) => {
                   return (
-                    <TableCell className={classes.tableCell} key={key}>
-                      {validateDate(data[prop]) ? formatDate(data[prop]) : data[prop]}
-                    </TableCell>
+                      prop === "url"
+                        ? <TableCell className={classes.tableCell} key={key}>
+                          <Link underline="always" className={classes.url}
+                            onClick={() => handleOpenUrl(data)}
+                          >{data[prop]?.substr(8, 51).concat("...") || ""}</Link>
+                        </TableCell>
+                        : <TableCell className={classes.tableCell} key={key}>
+                          {validateDate(data[prop]) ? formatDate(data[prop]) : data[prop]}
+                        </TableCell>
                   );
                 })}
                 <TableCell
                   className={classes.tableCell}
                   key={key}
                   onClick={() => handleChangeCurrent(data)}>
+                  {
+                    showFile && <Tooltip
+                      id="tooltip-top"
+                      title="Visualizar"
+                      placement="top"
+                      classes={{ tooltip: classes.tooltip }}
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label="Visibility"
+                        className={classes.tableActionButton}
+                        onClick={() => handleShowFile(data)}
+                      >
+                        {showFile}
+                      </IconButton>
+                    </Tooltip>
+                  }
                   {actions}
                 </TableCell>
               </TableRow>
@@ -122,4 +166,6 @@ CustomTable.propTypes = {
   tableData: PropTypes.arrayOf(PropTypes.object),
   setCurrent: PropTypes.func,
   actions: PropTypes.any,
+  showFile: PropTypes.any,
+  handleShowFile: PropTypes.func,
 };

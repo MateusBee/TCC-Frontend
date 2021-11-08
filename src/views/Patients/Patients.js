@@ -1,6 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
+// Services
+import { getAll, createPatient, updatePatient, deletePatient } from 'services/patient';
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Tooltip from "@material-ui/core/Tooltip";
@@ -39,23 +41,44 @@ function PatientsList({ enqueueSnackbar }) {
   const [control, setControl] = React.useState(false);
   const [controlMedicines, setControlMedicines] = React.useState(false)
 
+  const [search, setSearch] = React.useState("");
+  const [defaultData, setDefaultData] = React.useState([]);
+  const [data, setData] = React.useState([]);
+
   const initialValues = {
     name: "",
-    birthDate: null,
+    birth: null,
     cpf: "",
     age: "",
     weight: "",
     height: "",
     phone: "",
     comments: "",
+  };
+
+  const initialAddress = {
     cep: "",
     street: "",
     neighborhood: "",
     city: "",
     number: "",
-    complement: ""
+    complement: "",
   };
+
   const [values, setValues] = React.useState(initialValues);
+  const [address, setAddress] = React.useState(initialAddress);
+
+  const getDataTable = () => {
+    getAll().then(({data}) => {
+      setData(data.data);
+      setDefaultData(data.data);
+    });
+  };
+
+  const handleClean = () => {
+    setValues(initialValues);
+    setAddress(initialAddress);
+  }
 
   const handleChange = (event) => {
     const name = event.target.name;
@@ -64,7 +87,27 @@ function PatientsList({ enqueueSnackbar }) {
 
   const handleChangeDate = (date) => {
     console.log(date);
-    setValues({ ...values, birthDate: date});
+    setValues({ ...values, birth: date});
+  };
+
+  const handleChangeAddress = (event) => {
+    const name = event.target.name;
+    setAddress({ ...address, [name]: event.target.value });
+  };
+
+  const handleChangeSearch = (event) => {
+    setSearch(event.target.value);
+    if (event.target.value === "") handleSearch(event.target.value);
+  };
+
+  const handleSearch = (aux = search) => {
+    if (aux === "") {
+      setData(defaultData);
+      return;
+    }
+    const text = search.toUpperCase();
+    const tableData = data.filter((d) => d.name.toUpperCase().includes(text));
+    setData(tableData);
   };
 
   const handleModalPatient = () => {
@@ -85,7 +128,7 @@ function PatientsList({ enqueueSnackbar }) {
 
   const handleCancelPatient = () => {
     setControl(false);
-    setValues(initialValues);
+    handleClean();
   };
 
   const handleCancelMedicines = () => {
@@ -97,23 +140,74 @@ function PatientsList({ enqueueSnackbar }) {
     setOpen(false);
   };
 
+  const handleFormatEdit = (current) => {
+    setValues({
+      _id: current._id,
+      name: current.name,
+      birth: current.birth,
+      cpf: current.cpf,
+      age: current.age,
+      weight: current.weight,
+      height: current.height,
+      phone: current.phone,
+      comments: current.comments
+    });
+    setAddress(current.address);
+  };
+
+  const handleFields = (fields, formElements) => fields
+  .map(field => ({
+    [field]: formElements.namedItem(field).value
+  }))
+  .reduce((current, next) => ({ ...current, ...next }));
+
   const handleSavePatient = async e => {
     e.preventDefault();
 
-    const fields = ["name", "cpf", "age", "weight", "height"];
+    const fields = [
+      "name", "cpf", "age",
+      "weight", "height", "phone", "comments"
+    ];
+    const fieldsAddress = [
+      "cep", "street", "neighborhood",
+      "city", "number", "complement"
+    ];
+
     const formElements = e.target.elements;
 
-    const formValues = fields
-      .map(field => ({
-        [field]: formElements.namedItem(field).value
-      }))
-      .reduce((current, next) => ({ ...current, ...next }));
+    const formValues = handleFields(fields, formElements);
+    const formAddress = handleFields(fieldsAddress, formElements);
 
-    console.log(formValues)
+    const data = {
+      ...formValues,
+      birth: values.birth,
+      address: address._id ? { _id: address._id, ...formAddress } : formAddress,
+    };
 
+    if(values._id) handleUpdatePatient(values._id, data);
+    else handleCreatePatient(data);
+  };
 
-    enqueueSnackbar('Paciente registrado com sucesso', { variant: 'success' });
+  const handleUpdatePatient = (id, data) => {
+    updatePatient(id, data).then(() => {
+      handleCancelPatient();
+      enqueueSnackbar('Paciente atualizado com sucesso', { variant: 'success' });
+      getDataTable();
+    })
+    .catch(() => {
+      enqueueSnackbar('Oops! Não foi possível atualizar o paciente', { variant: 'error' });
+    })
+  };
 
+  const handleCreatePatient = (data) => {
+    createPatient(data).then(() => {
+      handleCancelPatient();
+      enqueueSnackbar('Paciente registrado com sucesso', { variant: 'success' });
+      getDataTable();
+    })
+    .catch(() => {
+      enqueueSnackbar('Oops! Não foi possível cadastrar o paciente', { variant: 'error' });
+    })
   };
 
   const handleSaveMedicines = () => {
@@ -121,7 +215,14 @@ function PatientsList({ enqueueSnackbar }) {
   };
 
   const handleConfirmDelete = () => {
-    enqueueSnackbar('Registro excluido com sucesso', { variant: 'success' });
+    deletePatient(values._id).then(() => {
+      enqueueSnackbar('Registro excluido com sucesso', { variant: 'success' });
+      handleCancelDelete();
+      getDataTable();
+    })
+    .catch(() => {
+      enqueueSnackbar('Oops! Não foi possível excluir esse registro', { variant: 'error' });
+    })
   };
 
   const FormPatients = () =>
@@ -176,7 +277,7 @@ function PatientsList({ enqueueSnackbar }) {
                   id="birthData"
                   name="birthData"
                   label="Data de Nascimento"
-                  value={values.birthDate}
+                  value={values.birth}
                   onChange={handleChangeDate}
                 />
               </GridItem>
@@ -221,7 +322,6 @@ function PatientsList({ enqueueSnackbar }) {
                   inputProps={{
                     required: true,
                     name: "height",
-                    type: "number",
                     value: values.height,
                     onChange: handleChange,
                   }}
@@ -272,8 +372,8 @@ function PatientsList({ enqueueSnackbar }) {
                   inputProps={{
                     required: true,
                     name: "cep",
-                    value: values.cep,
-                    onChange: handleChange,
+                    value: address.cep,
+                    onChange: handleChangeAddress,
                   }}
                   formControlProps={{
                     fullWidth: true,
@@ -287,8 +387,8 @@ function PatientsList({ enqueueSnackbar }) {
                   inputProps={{
                     required: true,
                     name: "street",
-                    value: values.street,
-                    onChange: handleChange,
+                    value: address.street,
+                    onChange: handleChangeAddress,
                   }}
                   formControlProps={{
                     fullWidth: true,
@@ -302,8 +402,8 @@ function PatientsList({ enqueueSnackbar }) {
                   inputProps={{
                     required: true,
                     name: "neighborhood",
-                    value: values.neighborhood,
-                    onChange: handleChange,
+                    value: address.neighborhood,
+                    onChange: handleChangeAddress,
                   }}
                   formControlProps={{
                     fullWidth: true,
@@ -319,8 +419,8 @@ function PatientsList({ enqueueSnackbar }) {
                   inputProps={{
                     required: true,
                     name: "city",
-                    value: values.city,
-                    onChange: handleChange,
+                    value: address.city,
+                    onChange: handleChangeAddress,
                   }}
                   formControlProps={{
                     fullWidth: true,
@@ -334,8 +434,8 @@ function PatientsList({ enqueueSnackbar }) {
                   inputProps={{
                     required: true,
                     name: "number",
-                    value: values.number,
-                    onChange: handleChange,
+                    value: address.number,
+                    onChange: handleChangeAddress,
                   }}
                   formControlProps={{
                     fullWidth: true,
@@ -348,8 +448,8 @@ function PatientsList({ enqueueSnackbar }) {
                   id="complement"
                   inputProps={{
                     name: "complement",
-                    value: values.complement,
-                    onChange: handleChange,
+                    value: address.complement,
+                    onChange: handleChangeAddress,
                   }}
                   formControlProps={{
                     fullWidth: true,
@@ -485,7 +585,7 @@ function PatientsList({ enqueueSnackbar }) {
       </Card>
     </GridItem>
 
-  //React.useEffect(() => console.log(values), [values]);
+  React.useEffect(() => getDataTable(), []);
 
   return (
     <>
@@ -506,13 +606,16 @@ function PatientsList({ enqueueSnackbar }) {
                     className: classes.margin + " " + classes.search,
                   }}
                   inputProps={{
+                    type: "search",
                     placeholder: "Pesquisar",
                     inputProps: {
                       "aria-label": "Pesquisar",
                     },
+                    onChange: handleChangeSearch
                   }}
                 />
-                <Button color="white" aria-label="edit" justIcon round>
+                <Button color="white" aria-label="edit" justIcon round
+                  onClick={handleSearch}>
                   <Search />
                 </Button>
               </div>
@@ -528,16 +631,9 @@ function PatientsList({ enqueueSnackbar }) {
                   { name: "Peso Kg", width: 50 },
                   { name: "Observação", width: 150 },
                   { name: "Ações", width: 50 },]}
-                tablecells={["cpf", "name", "birthDate", "age", "weight", "comments"]}
-                tableData={[
-                  { cpf: "000.000.000-00", name: "Dakota Rice", birthDate: "2021-08-19T03:00:00.000Z", age: "22", weight: "60.50", height: "1.55", comments: "teste" },
-                  { cpf: "000.000.000-00", name: "Minerva Hooper", birthDate: "2021-08-12T03:00:00.000Z", age: "25", weight: "75.02", height: "1.77", comments: "teste" },
-                  { cpf: "000.000.000-00", name: "Sage Rodriguez", birthDate: "2021-10-14T03:00:00.000Z", age: "55", weight: "57", height: "1.50", comments: "teste" },
-                  { cpf: "000.000.000-00", name: "Philip Chaney", birthDate: "2021-08-15T03:00:00.000Z", age: "56", weight: "66.05", height: "1.85", comments: "teste" },
-                  { cpf: "000.000.000-00", name: "Doris Greene", birthDate: "2021-08-24T03:00:00.000Z", age: "35", weight: "55.16", height: "1.75", comments: "teste" },
-                  { cpf: "000.000.000-00", name: "Mason Porter", birthDate: "2021-08-24T03:00:00.000Z", age: "70", weight: "47.68", height: "1.65", comments: "teste" },
-                ]}
-                setCurrent={setValues}
+                tablecells={["cpf", "name", "birth", "age", "weight", "comments"]}
+                tableData={data}
+                setCurrent={handleFormatEdit}
                 actions={
                   <>
                     <Tooltip

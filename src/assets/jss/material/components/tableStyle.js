@@ -9,7 +9,12 @@ import {
   defaultFont,
 } from "assets/jss/globalMaterial.js";
 
+import tooltipStyle from "assets/jss/material/tooltipStyle.js";
+import actionsStyle from "assets/jss/material/actionsStyle.js";
+
 const tableStyle = (theme) => ({
+  ...tooltipStyle,
+  ...actionsStyle,
   warningTableHeader: {
     color: warningColor[0],
   },
@@ -72,6 +77,9 @@ const tableStyle = (theme) => ({
     outline: "none",
     verticalAlign: "middle",
   },
+  url: {
+    cursor: "pointer",
+  }
 });
 
 export default tableStyle;

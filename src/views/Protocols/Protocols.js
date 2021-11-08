@@ -3,12 +3,11 @@ import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
 // Services
-import { uploadFile, getAll, createFile } from "services/file";
+import { uploadFile, getAll, createFile, deleteFile } from "services/file";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Tooltip from "@material-ui/core/Tooltip";
 import IconButton from "@material-ui/core/IconButton";
-import CircularProgress from '@material-ui/core/CircularProgress';
 // core components
 import Table from "components/Table/Table.js";
 import GridItem from "components/Grid/GridItem.js";
@@ -18,10 +17,10 @@ import CardBody from "components/Card/CardBody.js";
 import CardFooter from "components/Card/CardFooter.js";
 import CustomInput from "components/CustomInput/CustomInput.js";
 import Button from "components/CustomButtons/Button.js";
+import DeleteModal from 'components/Modal/Delete.js';
 // @material-ui/icons
 import Visibility from "@material-ui/icons/Visibility";
 import Delete from "@material-ui/icons/Delete";
-import Download from "@material-ui/icons/GetApp";
 import Search from "@material-ui/icons/Search";
 
 import tooltipStyle from "assets/jss/material/tooltipStyle.js";
@@ -66,9 +65,11 @@ const useStyles = makeStyles(styles);
 function Protocols({ enqueueSnackbar }) {
   const classes = useStyles();
 
+  const [open, setOpen] = React.useState(false);
   const [control, setControl] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
 
+  const [search, setSearch] = React.useState("");
+  const [defaultData, setDefaultData] = React.useState([]);
   const [data, setData] = React.useState([]);
   const [current, setCurrent] = React.useState({});
 
@@ -79,12 +80,40 @@ function Protocols({ enqueueSnackbar }) {
     setSelectedFile(file);
   };
 
+  const handleChangeSearch = (event) => {
+    setSearch(event.target.value);
+    if (event.target.value === "") handleSearch(event.target.value);
+  };
+
+  const handleSearch = (aux = search) => {
+    if (aux === "") {
+      setData(defaultData);
+      return;
+    }
+    const text = search.toUpperCase();
+    const tableData = data.filter((d) => d.name.toUpperCase().includes(text));
+    setData(tableData);
+  };
+
   const getDataTable = () => {
-    getAll().then(({data}) => setData(data.data));
+    getAll().then(({data}) => {
+      setData(data.data);
+      setDefaultData(data.data);
+    });
   };
 
   const handleOpen = () => {
     setControl(true);
+  };
+
+  const handleShowDocument = (data) => {
+    const { url } = data;
+    window.open(url);
+  };
+
+  const handleOpenDelete = () => {
+    setControl(false);
+    setOpen(true);
   };
 
   const handleClose = () => {
@@ -92,13 +121,8 @@ function Protocols({ enqueueSnackbar }) {
     setSelectedFile("");
   };
 
-  const handleShowDocument = (data) => {
-    setCurrent(data);
-    const { url } = data;
-
-    window.open(url);
-    setLoading(false);
-
+  const handleCancelDelete = () => {
+    setOpen(false);
   };
 
   const handleSavefile = async () => {
@@ -115,6 +139,17 @@ function Protocols({ enqueueSnackbar }) {
     })
     .catch(() => {
       enqueueSnackbar('Oops! Não foi possível salvar esse documento', { variant: 'error' });
+    })
+  };
+
+  const handleConfirmDelete = () => {
+    deleteFile(current._id).then(() => {
+      enqueueSnackbar('Registro excluido com sucesso', { variant: 'success' });
+      handleCancelDelete();
+      getDataTable();
+    })
+    .catch(() => {
+      enqueueSnackbar('Oops! Não foi possível excluir esse registro', { variant: 'error' });
     })
   };
 
@@ -160,108 +195,90 @@ function Protocols({ enqueueSnackbar }) {
     </GridItem>
 
   return (
-    <GridContainer>
-      {formProtocols()}
-      <GridItem xs={12} sm={12} md={12}>
-        <Card>
-        <CardFooter>
-            <Button
-            styles={{ marginTop: 10 }}
-            color="primary"
-            onClick={handleOpen}>Novo Documento</Button>
-            <div className={classes.searchWrapper}>
-              <CustomInput
-                formControlProps={{
-                  className: classes.margin + " " + classes.search,
-                }}
-                inputProps={{
-                  placeholder: "Pesquisar",
-                  inputProps: {
-                    "aria-label": "Pesquisar",
-                  },
-                }}
-              />
-              <Button color="white" aria-label="edit" justIcon round>
-                <Search />
-              </Button>
-            </div>
-          </CardFooter>
-          <CardBody>
-            <Table
-              tableHeaderColor="primary"
-              tableHead={[
-                { name: "Descrição", width: 250},
-                { name: "Inclusão", width: 250 },
-                { name: "Ações", width: 20 },
-              ]}
-              tablecells={["name", "createdAt"]}
-              tableData={data}
-              setCurrent={handleShowDocument}
-              actions={(
-              <>
-                <Tooltip
-                  id="tooltip-top"
-                  title="Visualizar"
-                  placement="top"
-                  classes={{ tooltip: classes.tooltip }}
-                >
-                  <IconButton
-                    size="small"
-                    aria-label="Visibility"
-                    className={classes.tableActionButton}
-                    onClick={() => setLoading(true)}
+    <>
+      <GridContainer>
+        {formProtocols()}
+        <GridItem xs={12} sm={12} md={12}>
+          <Card>
+          <CardFooter>
+              <Button
+              styles={{ marginTop: 10 }}
+              color="primary"
+              onClick={handleOpen}>Novo Documento</Button>
+              <div className={classes.searchWrapper}>
+                <CustomInput
+                  formControlProps={{
+                    className: classes.margin + " " + classes.search,
+                  }}
+                  inputProps={{
+                    type: "search",
+                    placeholder: "Pesquisar",
+                    inputProps: {
+                      "aria-label": "Pesquisar",
+                    },
+                    onChange: handleChangeSearch
+                  }}
+                />
+                <Button color="white" aria-label="edit" justIcon round
+                  onClick={handleSearch}>
+                  <Search />
+                </Button>
+              </div>
+            </CardFooter>
+            <CardBody>
+              <Table
+                tableHeaderColor="primary"
+                tableHead={[
+                  { name: "Descrição", width: 250},
+                  { name: "Inclusão", width: 250 },
+                  { name: "Ações", width: 20 },
+                ]}
+                tablecells={["name", "createdAt"]}
+                tableData={data}
+                setCurrent={setCurrent}
+                actions={(
+                <>
+                  <Tooltip
+                    id="tooltip-top-start"
+                    title="Excluir"
+                    placement="top"
+                    classes={{ tooltip: classes.tooltip }}
                   >
-                    {loading ? <CircularProgress size={20} />
-                      : <Visibility
+                    <IconButton
+                      size="small"
+                      aria-label="Remove"
+                      className={classes.tableActionButton}
+                      onClick={handleOpenDelete}
+                    >
+                      <Delete
                         className={
-                          classes.tableActionButtonIcon + " " + classes.visibility
+                          classes.tableActionButtonIcon + " " + classes.remove
                         }
-                      />}
-                  </IconButton>
-                </Tooltip>
-                <Tooltip
-                  id="tooltip-top"
-                  title="Baixar"
-                  placement="top"
-                  classes={{ tooltip: classes.tooltip }}
-                >
-                  <IconButton
-                    size="small"
-                    aria-label="Download"
-                    className={classes.tableActionButton}
-                  >
-                    <Download
-                      className={
-                        classes.tableActionButtonIcon + " " + classes.download
-                      }
-                    />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip
-                  id="tooltip-top-start"
-                  title="Excluir"
-                  placement="top"
-                  classes={{ tooltip: classes.tooltip }}
-                >
-                  <IconButton
-                    size="small"
-                    aria-label="Remove"
-                    className={classes.tableActionButton}
-                  >
-                    <Delete
-                      className={
-                        classes.tableActionButtonIcon + " " + classes.remove
-                      }
-                    />
-                  </IconButton>
-                </Tooltip>
-              </>
-              )}
-            />
-          </CardBody>
-        </Card>
-      </GridItem>
-    </GridContainer>
+                      />
+                    </IconButton>
+                  </Tooltip>
+                </>
+                )}
+                showFile={(
+                <Visibility
+                  className={
+                    classes.tableActionButtonIcon + " " + classes.visibility
+                  }
+                />)}
+                handleShowFile={handleShowDocument}
+              />
+            </CardBody>
+          </Card>
+        </GridItem>
+      </GridContainer>
+      <DeleteModal
+        open={open}
+        handleClose={handleCancelDelete}
+        handleConfirm={handleConfirmDelete}
+        title="Excluir Documento"
+        body={`Tem certeza que deseja excluir o documento "${current.name}" do sistema?`}
+      />
+    </>
   );
 }
 
