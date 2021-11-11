@@ -114,7 +114,9 @@ const dashboardStyle = (theme) => ({
     alignItems: "flex-end",
     justifyContent: "end",
   },
-
+  info: {
+    marginLeft: "7px",
+  },
   divider: {
     margin: "15px 0px",
   },

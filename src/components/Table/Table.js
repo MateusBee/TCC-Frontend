@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 // Utils
-import { validateDate, formatDate } from "utils/DateFormat.js"
+import { validateDate, formatDate } from "utils/DateFormat.js";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";

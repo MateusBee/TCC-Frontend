@@ -1,4 +1,4 @@
-import { grayColor } from "assets/jss/globalMaterial.js";
+import { grayColor, primaryColor } from "assets/jss/globalMaterial.js";
 import tooltipStyle from "assets/jss/material/tooltipStyle.js";
 import actionsStyle from "assets/jss/material/actionsStyle.js";
 import searchStyle from "assets/jss/material/searchStyle.js";
@@ -40,9 +40,29 @@ const patientsStyle = () => ({
   info: {
     marginLeft: "7px",
   },
+  formControl: {
+    paddingBottom: "10px",
+    margin: "10px 0 0 0",
+    position: "relative",
+    verticalAlign: "unset",
+  },
+  root: {
+    '& label.Mui-focused': {
+      color: primaryColor[0],
+    },
+    '& .MuiInput-underline:after': {
+      borderBottomColor: primaryColor[0],
+    },
+  },
   divider: {
     margin: "15px 0px",
   },
+  item: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: "7px",
+    padding: "6px 0px 6px 0px",
+    marginBottom: "10px",
+  }
 });
 
 export default patientsStyle;

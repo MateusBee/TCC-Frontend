@@ -1,6 +1,12 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
+// Services
+import {
+  getAll,
+} from 'services/patient';
+// Utils
+import { formatDate } from "utils/DateFormat.js";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Divider from "@material-ui/core/Divider";
@@ -20,7 +26,6 @@ import Button from "components/CustomButtons/Button.js";
 import CustomInput from "components/CustomInput/CustomInput.js";
 // @material-ui/icons
 import Update from "@material-ui/icons/Update";
-import Accessibility from "@material-ui/icons/Accessibility";
 import Search from "@material-ui/icons/Search";
 
 import styles from "assets/jss/material/views/dashboardStyle.js";
@@ -32,17 +37,48 @@ function Dashboard({ enqueueSnackbar }) {
 
   const [open, setOpen] = React.useState(false);
 
-  const handleOpen = () => {
+  const [search, setSearch] = React.useState("");
+  const [defaultData, setDefaultData] = React.useState([]);
+  const [data, setData] = React.useState([]);
+  const [current, setCurrent] = React.useState({});
+
+  const getDataTable = () => {
+    getAll().then(({data}) => {
+      setData(data.data);
+      setDefaultData(data.data);
+    });
+  };
+
+  const handleChangeSearch = (event) => {
+    setSearch(event.target.value);
+    if (event.target.value === "") handleSearch(event.target.value);
+  };
+
+  const handleSearch = (aux = search) => {
+    if (aux === "") {
+      setData(defaultData);
+      return;
+    }
+    const text = search.toUpperCase();
+    const tableData = data.filter((d) => d.name.toUpperCase().includes(text));
+    setData(tableData);
+  };
+
+  const handleOpen = (data) => {
+    setCurrent(data);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
+    setCurrent({});
   };
 
   const handleConfirm = () => {
     enqueueSnackbar('Medicamentos administrado com sucesso', { variant: 'success' });
   };
+
+  React.useEffect(() => getDataTable(), []);
 
   return (
     <div>
@@ -57,133 +93,41 @@ function Dashboard({ enqueueSnackbar }) {
             inputProps: {
               "aria-label": "Pesquisar",
             },
+            onChange: handleChangeSearch
           }}
         />
-        <Button color="white" aria-label="edit" justIcon round>
+        <Button color="white" aria-label="edit" justIcon round
+          onClick={handleSearch}>
           <Search />
         </Button>
       </div>
       <GridContainer>
-        <GridItem xs={12} sm={6} md={3}>
-          <Card>
-            <CardHeader color="warning" stats icon>
-              <CardIcon color="warning">
-                <Accessibility />
-              </CardIcon>
-              <h3 className={classes.cardTitle}>
-                Mateus
-              </h3>
-              <p className={classes.cardCategory}>Data / Horário</p>
-            </CardHeader>
-            <CardFooter stats>
-              <div className={classes.stats}>
-                <Update />
-                Regressiva
-              </div>
-              <Link
-                underline="always"
-                className={classes.link}
-                onClick={handleOpen}
-              >Detalhes</Link>
-            </CardFooter>
-          </Card>
-        </GridItem>
-        <GridItem xs={12} sm={6} md={3}>
-          <Card>
-            <CardHeader color="success" stats icon>
-              <CardIcon color="success">
-                <Accessibility />
-              </CardIcon>
-              <h3 className={classes.cardTitle}>
-                João
-              </h3>
-              <p className={classes.cardCategory}>Data / Horário</p>
-            </CardHeader>
-            <CardFooter stats>
-              <div className={classes.stats}>
-                <Update />
-                Regressiva
-              </div>
-              <Link
-                underline="always"
-                className={classes.link}
-                onClick={handleOpen}
-              >Detalhes</Link>
-            </CardFooter>
-          </Card>
-        </GridItem>
-        <GridItem xs={12} sm={6} md={3}>
-          <Card>
-            <CardHeader color="danger" stats icon>
-              <CardIcon color="danger">
-                <Accessibility />
-              </CardIcon>
-              <h3 className={classes.cardTitle}>
-                Lucas
-              </h3>
-              <p className={classes.cardCategory}>Data / Horário</p>
-            </CardHeader>
-            <CardFooter stats>
-              <div className={classes.stats}>
-                <Update />
-                Regressiva
-              </div>
-              <Link
-                underline="always"
-                className={classes.link}
-                onClick={handleOpen}
-              >Detalhes</Link>
-            </CardFooter>
-          </Card>
-        </GridItem>
-        <GridItem xs={12} sm={6} md={3}>
-          <Card>
-            <CardHeader color="primary" stats icon>
-              <CardIcon color="primary">
-                <Accessibility />
-              </CardIcon>
-              <h3 className={classes.cardTitle}>
-                Érica
-              </h3>
-              <p className={classes.cardCategory}>Data / Horário</p>
-            </CardHeader>
-            <CardFooter stats>
-              <div className={classes.stats}>
-                <Update />
-                Regressiva
-              </div>
-              <Link
-                underline="always"
-                className={classes.link}
-                onClick={handleOpen}
-              >Detalhes</Link>
-            </CardFooter>
-          </Card>
-        </GridItem>
-        <GridItem xs={12} sm={6} md={3}>
-          <Card>
-            <CardHeader color="primary" stats icon>
-              <CardIcon color="primary">
-                <Accessibility />
-              </CardIcon>
-              <h3 className={classes.cardTitle}>
-                Nando
-              </h3>
-              <p className={classes.cardCategory}>Data / Horário</p>
-            </CardHeader>
-            <CardFooter stats>
-              <div className={classes.stats}>
-                <Update />
-                Regressiva
-              </div>
-              <Link
-                underline="always"
-                className={classes.link}
-                onClick={handleOpen}
-              >Detalhes</Link>
-            </CardFooter>
-          </Card>
-        </GridItem>
+        {
+          data.map((patient) => (
+            <GridItem xs={12} sm={6} md={3} key={patient._id}>
+              <Card>
+                <CardHeader color="warning" stats icon>
+                  <CardIcon image={patient.url} />
+                  <h3 className={classes.cardTitle}>
+                    {patient.name}
+                  </h3>
+                  <p className={classes.cardCategory}>Data / Horário</p>
+                </CardHeader>
+                <CardFooter stats>
+                  <div className={classes.stats}>
+                    <Update />
+                    Regressiva
+                  </div>
+                  <Link
+                    underline="always"
+                    className={classes.link}
+                    onClick={() => handleOpen(patient)}
+                  >Detalhes</Link>
+                </CardFooter>
+              </Card>
+            </GridItem>
+          ))
+        }
       </GridContainer>
 
       <Modal
@@ -195,33 +139,33 @@ function Dashboard({ enqueueSnackbar }) {
               <Card>
                 <CardBody className={classes.cardCategory} >
                   <h3 className={classes.cardTitle}>
-                    Dados do Paciente XXX
+                    Dados do Paciente {current.name}
                   </h3>
                   <GridContainer>
                     <GridItem xs={12} sm={6} md={4}>
-                      Nome
+                      Nome:<strong className={classes.info}>{current.name}</strong>
                     </GridItem>
                     <GridItem xs={12} sm={6} md={4}>
-                      CPF
+                      CPF:<strong className={classes.info}>{current.cpf}</strong>
                     </GridItem>
                     <GridItem xs={12} sm={6} md={4}>
-                      Data de Nascimento
-                    </GridItem>
-                  </GridContainer>
-                  <GridContainer>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Idade
-                    </GridItem>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Peso
-                    </GridItem>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Altura
+                      Data de Nascimento:<strong className={classes.info}>{formatDate(current.birth)}</strong>
                     </GridItem>
                   </GridContainer>
                   <GridContainer>
                     <GridItem xs={12} sm={6} md={4}>
-                      Observações
+                      Idade:<strong className={classes.info}>{current.age}</strong>
+                    </GridItem>
+                    <GridItem xs={12} sm={6} md={4}>
+                      Peso:<strong className={classes.info}>{current.weight} Kg</strong>
+                    </GridItem>
+                    <GridItem xs={12} sm={6} md={4}>
+                      Altura:<strong className={classes.info}>{current.height}</strong>
+                    </GridItem>
+                  </GridContainer>
+                  <GridContainer>
+                    <GridItem xs={12} sm={6} md={4}>
+                      Observações:<strong className={classes.info}>{current.comments}</strong>
                     </GridItem>
                   </GridContainer>
                   <Divider className={classes.divider} />
