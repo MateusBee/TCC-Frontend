@@ -1,15 +1,19 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
+// Utils
+import { validateAccess } from "utils/Access";
+import { formatDate } from "utils/DateFormat";
 // Services
 import {
   getAll,
   getMedications,
   createPatient,
   updatePatient,
-  deletePatient
+  deletePatient,
 } from 'services/patient';
 import { uploadFile } from "services/file";
+import { createMedication } from "services/ministration";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Tooltip from "@material-ui/core/Tooltip";
@@ -17,8 +21,10 @@ import IconButton from "@material-ui/core/IconButton";
 import Divider from "@material-ui/core/Divider";
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import TextField from '@material-ui/core/TextField';
+//import InputAdornment from '@material-ui/core/InputAdornment';
+//import Avatar from "@material-ui/core/Avatar";
 // core components
-import Muted from "components/Typography/Muted.js";
+//import Muted from "components/Typography/Muted.js";
 import GridItem from "components/Grid/GridItem.js";
 import GridContainer from "components/Grid/GridContainer.js";
 import Table from "components/Table/Table.js";
@@ -79,9 +85,11 @@ function PatientsList({ enqueueSnackbar }) {
   };
 
   const initialMedication = {
-    medication_id: "",
+    medication: "",
     dose: "",
-    break_schedule: "",
+    instructions: "",
+    interval: "",
+    medicationFor: null,
   };
 
   const [values, setValues] = React.useState(initialValues);
@@ -105,6 +113,8 @@ function PatientsList({ enqueueSnackbar }) {
   const handleClean = () => {
     setValues(initialValues);
     setAddress(initialAddress);
+    setMedication(initialMedication);
+    setMedications([]);
     document.getElementById("file").value = "";
   }
 
@@ -119,8 +129,11 @@ function PatientsList({ enqueueSnackbar }) {
   };
 
   const handleChangeDate = (date) => {
-    console.log(date);
     setValues({ ...values, birth: date});
+  };
+
+  const handleChangeDateMedication = (date) => {
+    setMedication({ ...medication, medicationFor: date});
   };
 
   const handleChangeAddress = (event) => {
@@ -129,14 +142,12 @@ function PatientsList({ enqueueSnackbar }) {
   };
 
   const handleChangeMedication = (event) => {
-    console.log(event.target.value);
     const name = event.target.name;
     setMedication({ ...medication, [name]: event.target.value });
   };
 
   const handleChangeAutoComplete = (event, newInputValue) => {
-    console.log(newInputValue);
-    setMedication({ ...medication, medication_id: newInputValue });
+    setMedication({ ...medication, medication: newInputValue });
   };
 
   const handleChangeSearch = (event) => {
@@ -177,8 +188,7 @@ function PatientsList({ enqueueSnackbar }) {
 
   const handleCancelMedicines = () => {
     setControlMedicines(false);
-    setValues(initialValues);
-    setMedication(initialMedication);
+    handleClean();
   };
 
   const handleCancelDelete = () => {
@@ -199,7 +209,19 @@ function PatientsList({ enqueueSnackbar }) {
       comments: current.comments
     });
     setAddress(current.address);
+    const medication = current.medication;
+    setMedications(medication ? medications.concat([medication]) : []);
   };
+
+  const hadleFormatMedication = (array) => array.map((med) => ({
+      patient: values._id,
+      medication: med.medication._id,
+      interval: med.interval,
+      dose: med.dose,
+      instructions: med.instructions,
+      medicatedAt: new Date(),
+      medicationFor: med.medicationFor,
+    }))
 
   const handleFields = (fields, formElements) => fields
   .map(field => ({
@@ -208,9 +230,15 @@ function PatientsList({ enqueueSnackbar }) {
   .reduce((current, next) => ({ ...current, ...next }));
 
   const handleAddMedication = () => {
+    console.log(medication)
     setMedications([ ...medications, medication ]);
     setMedication(initialMedication);
-  }
+  };
+
+  const handleRemoveMedication = (med) => {
+    const data = medications.filter((m) => m.medication._id !== med.medication._id);
+    setMedications(data);
+  };
 
   const handleSavePatient = async e => {
     e.preventDefault();
@@ -236,9 +264,6 @@ function PatientsList({ enqueueSnackbar }) {
         image = url;
       });
     }
-
-    console.log(values.url);
-
 
     const data = {
       ...formValues,
@@ -276,7 +301,21 @@ function PatientsList({ enqueueSnackbar }) {
   };
 
   const handleSaveMedicines = () => {
-    enqueueSnackbar('Medicamentos vinculados com sucesso', { variant: 'success' });
+    const formValues = hadleFormatMedication(medications);
+
+    formValues.map((data) => {
+      createMedication(data).then(() => {
+        enqueueSnackbar('Medicamentos vinculados ao paciente com sucesso', { variant: 'success' });
+        handleCancelMedicines();
+        handleClean();
+      })
+      .catch(() => {
+        enqueueSnackbar('Oops! Não foi possível vincular os medicamentos ao paciente', { variant: 'error' });
+      })
+
+    });
+
+    console.log(formValues);
   };
 
   const handleConfirmDelete = () => {
@@ -296,14 +335,41 @@ function PatientsList({ enqueueSnackbar }) {
         medications.map((med, index) =>
           <div key={index} className={classes.item}>
             <GridContainer>
-              <GridItem xs={12} sm={6} md={4}>
-                <strong className={classes.info}>{med.medication_id.name} - {med.medication_id.form}</strong>
+              <GridItem xs={12} sm={6} md={3}>
+                <strong className={classes.info}>{med.medication.name} - {med.medication.form}</strong>
               </GridItem>
-              <GridItem xs={12} sm={6} md={4}>
+              <GridItem xs={12} sm={6} md={2}>
                 <strong className={classes.info}>{med.dose}</strong>
               </GridItem>
-              <GridItem xs={12} sm={6} md={4}>
-                <strong className={classes.info}>{med.break_schedule} h</strong>
+              <GridItem xs={12} sm={6} md={3}>
+                <strong className={classes.info}>{med.instructions}</strong>
+              </GridItem>
+              <GridItem xs={12} sm={6} md={1}>
+                <strong className={classes.info}>{med.interval} h</strong>
+              </GridItem>
+              <GridItem xs={12} sm={6} md={2}>
+                <strong className={classes.info}>{formatDate(med.medicationFor)} h</strong>
+              </GridItem>
+              <GridItem xs={12} sm={6} md={1}>
+                <Tooltip
+                  id="tooltip-top-start"
+                  title="Remover"
+                  placement="top"
+                  classes={{ tooltip: classes.tooltip }}
+                >
+                  <IconButton
+                    size="small"
+                    aria-label="Remove"
+                    className={classes.tableActionButton}
+                    onClick={() => handleRemoveMedication(med)}
+                  >
+                    <Delete
+                      className={
+                        classes.tableActionButtonIcon + " " + classes.remove
+                      }
+                    />
+                  </IconButton>
+                </Tooltip>
               </GridItem>
             </GridContainer>
           </div>
@@ -611,17 +677,17 @@ function PatientsList({ enqueueSnackbar }) {
           <Divider className={classes.divider} />
           {renderMedications()}
           <GridContainer>
-            <GridItem xs={12} sm={12} md={4}>
+            <GridItem xs={12} sm={12} md={3}>
               <Autocomplete
                 fullWidth
                 id="medicine"
                 name="medicine"
                 className={classes.formControl}
                 options={options}
-                //value={medication.medication_id}
+                //value={medication.medication}
                 //defaultValue={patients}
                 onChange={handleChangeAutoComplete}
-                getOptionLabel={(option) => `${option.name} - ${option.form}`}
+                getOptionLabel={(option) => `${option.name} - ${option.form} - ${option.type}`}
                 getOptionSelected={(option, value) => option.id === value.id}
                 renderInput={(params) => (
                   <TextField
@@ -635,7 +701,7 @@ function PatientsList({ enqueueSnackbar }) {
                 )}
               />
             </GridItem>
-            <GridItem xs={12} sm={12} md={3}>
+            <GridItem xs={12} sm={12} md={2}>
               <CustomInput
                 labelText="Dosagem"
                 id="dose"
@@ -649,25 +715,42 @@ function PatientsList({ enqueueSnackbar }) {
                 }}
               />
             </GridItem>
-            <GridItem xs={12} sm={12} md={1}>
-              <Muted>{medication.medication_id?.form}</Muted>
-            </GridItem>
             <GridItem xs={12} sm={12} md={3}>
               <CustomInput
-                labelText="Intervalo hh:mm"
-                id="break_schedule"
+                labelText="Instruções"
+                id="instructions"
                 inputProps={{
-                  type: "time",
-                  name: "break_schedule",
-                  value: medication.break_schedule,
+                  name: "instructions",
+                  value: medication.instructions,
                   onChange: handleChangeMedication,
-                }}
-                labelProps={{
-                  shrink: true,
                 }}
                 formControlProps={{
                   fullWidth: true,
                 }}
+              />
+            </GridItem>
+            <GridItem xs={12} sm={12} md={1}>
+              <CustomInput
+                labelText="Intervalo hh"
+                id="interval"
+                inputProps={{
+                  name: "interval",
+                  value: medication.interval,
+                  onChange: handleChangeMedication,
+                }}
+                formControlProps={{
+                  fullWidth: true,
+                }}
+              />
+            </GridItem>
+            <GridItem xs={12} sm={12} md={2}>
+              <InputDate
+                required={true}
+                id="medicationFor"
+                name="medicationFor"
+                label="Fim do tratamento"
+                value={medication.medicationFor}
+                onChange={handleChangeDateMedication}
               />
             </GridItem>
             <GridItem xs={12} sm={12} md={1}>
@@ -722,11 +805,15 @@ function PatientsList({ enqueueSnackbar }) {
         <GridItem xs={12} sm={12} md={12}>
           <Card>
             <CardFooter>
-              <Button
-              color="primary"
-              disabled={control || controlMedicines}
-              styles={{ marginTop: 10 }}
-              onClick={handleModalPatient}>Novo Paciente</Button>
+              {
+                validateAccess([4,5])
+                  ? <Button
+                    color="primary"
+                    disabled={control || controlMedicines}
+                    styles={{ marginTop: 10 }}
+                    onClick={handleModalPatient}>Novo Paciente</Button>
+                  : <div/>
+              }
               <div className={classes.searchWrapper}>
                 <CustomInput
                   formControlProps={{
@@ -751,19 +838,20 @@ function PatientsList({ enqueueSnackbar }) {
               <Table
                 tableHeaderColor="primary"
                 tableHead={[
-                  { name: "CPF", width: 100 },
+                  { name: "", width: 30 },
                   { name: "Nome", width: 150 },
-                  { name: "Data de Nascimento", width: 150 },
+                  { name: "Data de Nascimento", width: 100 },
                   { name: "Idade", width: 50 },
                   { name: "Peso Kg", width: 50 },
                   { name: "Observação", width: 150 },
                   { name: "Ações", width: 50 },]}
-                tablecells={["cpf", "name", "birth", "age", "weight", "comments"]}
+                tablecells={["image", "name", "birth", "age", "weight", "comments"]}
                 tableData={data}
                 setCurrent={handleFormatEdit}
                 actions={
                   <>
-                    <Tooltip
+                  {
+                    validateAccess([4,5]) && <Tooltip
                       id="tooltip-top"
                       title="Editar"
                       placement="top"
@@ -784,7 +872,9 @@ function PatientsList({ enqueueSnackbar }) {
                         />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip
+                  }
+                  {
+                    validateAccess([1,5]) && <Tooltip
                       id="tooltip-top-start"
                       title="Medicamentos"
                       placement="top"
@@ -804,7 +894,9 @@ function PatientsList({ enqueueSnackbar }) {
                         />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip
+                  }
+                  {
+                    validateAccess([4,5]) && <Tooltip
                       id="tooltip-top-start"
                       title="Excluir"
                       placement="top"
@@ -823,6 +915,7 @@ function PatientsList({ enqueueSnackbar }) {
                         />
                       </IconButton>
                     </Tooltip>
+                  }
                   </>
                 }
               />

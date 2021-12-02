@@ -1,6 +1,8 @@
 /*eslint-disable*/
 import React from "react";
 import { withSnackbar } from 'notistack';
+// Services
+import { getToken, resetPassword } from 'services/auth';
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import InputAdornment from "@material-ui/core/InputAdornment";
@@ -32,16 +34,57 @@ function getSteps() {
 function Password({ history, enqueueSnackbar }) {
   const classes = useStyles();
 
+  const initialValues = {
+    email: "",
+    password: "",
+    confirmPassword: "",
+    token: "",
+  };
+
+  const [values, setValues] = React.useState(initialValues);
+
   const [activeStep, setActiveStep] = React.useState(0);
   const steps = getSteps();
 
+  const handleClean = () => {
+    setValues(initialValues);
+  }
+
+  const handleChange = (event) => {
+    const name = event.target.name;
+    setValues({ ...values, [name]: event.target.value });
+  };
+
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    if (activeStep === 0) {
+      const data = {
+        email: values.email,
+      }
+      getToken(data);
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    } else {
+      handleSave();
+    }
   };
 
   const handleCancel = () => {
     history.push("auth/login");
   };
+
+  const handleSave = () => {
+    if(values.password !== values.confirmPassword) {
+      enqueueSnackbar('Oops! Parece que as senhas estão diferentes.', { variant: 'error' });
+      return;
+    }
+
+    const data = {
+      email: values.email,
+      password: values.password,
+      token: values.token
+    }
+    // resetPassword(data)
+    console.log("Mudou", data);
+  }
   
   const getStepContent = (stepIndex) => {
     switch (stepIndex) {
@@ -57,7 +100,9 @@ function Password({ history, enqueueSnackbar }) {
             }}
             inputProps={{
               required: true,
-              name: "username",
+              name: "email",
+              value: values.email,
+              onChange: handleChange,
               endAdornment: (
                 <InputAdornment position="end">
                   <Email className={classes.inputAdornmentIcon} />
@@ -78,6 +123,9 @@ function Password({ history, enqueueSnackbar }) {
             inputProps={{
               type: "password",
               required: true,
+              name: "password",
+              value: values.password,
+              onChange: handleChange,
               endAdornment: (
                 <InputAdornment position="end">
                   <Icon className={classes.inputAdornmentIcon}>
@@ -97,6 +145,9 @@ function Password({ history, enqueueSnackbar }) {
             inputProps={{
               type: "password",
               required: true,
+              name: "confirmPassword",
+              value: values.confirmPassword,
+              onChange: handleChange,
               endAdornment: (
                 <InputAdornment position="end">
                   <Icon className={classes.inputAdornmentIcon}>
@@ -116,6 +167,9 @@ function Password({ history, enqueueSnackbar }) {
             inputProps={{
               type: "token",
               required: true,
+              name: "token",
+              value: values.token,
+              onChange: handleChange,
               endAdornment: (
                 <InputAdornment position="end">
                   <Icon className={classes.inputAdornmentIcon}>

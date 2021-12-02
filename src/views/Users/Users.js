@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
 // Services
 import { getAll, createUser, updateUser, deleteUser } from 'services/user';
+import { getAll as getAllPatients } from 'services/patient';
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Tooltip from "@material-ui/core/Tooltip";
@@ -70,18 +71,18 @@ function UsersList({ enqueueSnackbar }) {
   const [values, setValues] = React.useState(initialValues);
   const [address, setAddress] = React.useState(initialAddress);
   const [patients, setPatients] = React.useState([]);
-
-  const options = [
-    { id: 1, name: 'Dakota Rice' },
-    { id: 2, name: 'Minerva Hooper' },
-    { id: 3, name: 'Sage Rodriguez' },
-    { id: 4, name: 'Philip Chaney' },
-  ];
+  const [options, setOptions] = React.useState([]);
 
   const getDataTable = () => {
     getAll().then(({data}) => {
       setData(data.data);
       setDefaultData(data.data);
+    });
+  };
+
+  const getPatients = () => {
+    getAllPatients().then(({data}) => {
+      setOptions(data.data);
     });
   };
 
@@ -167,6 +168,7 @@ function UsersList({ enqueueSnackbar }) {
       "Profissional da Área": 2,
       "Familiar": 3,
       "Administrador": 4,
+      "Superusuário": 5
     };
 
     return type[s];
@@ -242,6 +244,8 @@ function UsersList({ enqueueSnackbar }) {
   };
 
   React.useEffect(() => getDataTable(), []);
+
+  React.useEffect(() => getPatients(), []);
 
   const FormUsers = () =>
   <GridItem xs={12} sm={12} md={12}

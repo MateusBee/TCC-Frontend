@@ -13,6 +13,7 @@ import TablePagination from "@material-ui/core/TablePagination";
 import Tooltip from "@material-ui/core/Tooltip";
 import IconButton from "@material-ui/core/IconButton";
 import Link from "@material-ui/core/Link";
+import Avatar from "@material-ui/core/Avatar";
 // core components
 import styles from "assets/jss/material/components/tableStyle.js";
 
@@ -95,9 +96,13 @@ export default function CustomTable(props) {
                             onClick={() => handleOpenUrl(data)}
                           >{data[prop]?.substr(8, 51).concat("...") || ""}</Link>
                         </TableCell>
-                        : <TableCell className={classes.tableCell} key={key}>
-                          {validateDate(data[prop]) ? formatDate(data[prop]) : data[prop]}
-                        </TableCell>
+                        : prop === "image"
+                          ? <TableCell className={classes.tableCell} key={key}>
+                            <Avatar alt="user" src={data.url}/>
+                          </TableCell>
+                          :<TableCell className={classes.tableCell} key={key}>
+                            {validateDate(data[prop]) ? formatDate(data[prop]) : data[prop]}
+                          </TableCell>
                   );
                 })}
                 <TableCell

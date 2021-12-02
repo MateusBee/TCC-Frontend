@@ -1,6 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
+// Utils
+import { validateAccess } from "utils/Access";
 // Services
 import { getAll, createMedication, updateMedication, deleteMedication } from 'services/medication';
 // @material-ui/core components
@@ -248,10 +250,15 @@ function MedicationList({ enqueueSnackbar }) {
         <GridItem xs={12} sm={12} md={12}>
           <Card>
             <CardFooter>
-              <Button
-              color="primary"
-              styles={{ marginTop: 10 }}
-              onClick={handleModalMedication}>Novo Medicamento</Button>
+              {
+                validateAccess([1,5])
+                  ? <Button
+                    color="primary"
+                    styles={{ marginTop: 10 }}
+                    onClick={handleModalMedication}>Novo Medicamento</Button>
+                    : <div/>
+              }
+
               <div className={classes.searchWrapper}>
                 <CustomInput
                   formControlProps={{
@@ -286,7 +293,8 @@ function MedicationList({ enqueueSnackbar }) {
                 setCurrent={handleFormatEdit}
                 actions={
                   <>
-                    <Tooltip
+                  {
+                    validateAccess([1,5]) && <Tooltip
                       id="tooltip-top"
                       title="Editar"
                       placement="top"
@@ -307,7 +315,9 @@ function MedicationList({ enqueueSnackbar }) {
                         />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip
+                  }
+                  {
+                    validateAccess([1,5]) && <Tooltip
                       id="tooltip-top-start"
                       title="Excluir"
                       placement="top"
@@ -328,6 +338,7 @@ function MedicationList({ enqueueSnackbar }) {
                         />
                       </IconButton>
                     </Tooltip>
+                  }
                   </>
                 }
               />

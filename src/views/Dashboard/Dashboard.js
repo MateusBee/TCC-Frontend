@@ -2,11 +2,10 @@ import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
 // Services
-import {
-  getAll,
-} from 'services/patient';
+import { getAll, updateMedication } from 'services/ministration';
 // Utils
-import { formatDate } from "utils/DateFormat.js";
+import { validateAccess } from "utils/Access";
+import { formatDate, formatDateTime } from "utils/DateFormat.js";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import Divider from "@material-ui/core/Divider";
@@ -24,6 +23,7 @@ import CardBody from "components/Card/CardBody.js";
 import CardFooter from "components/Card/CardFooter.js";
 import Button from "components/CustomButtons/Button.js";
 import CustomInput from "components/CustomInput/CustomInput.js";
+import Timer from "components/Timer/Timer";
 // @material-ui/icons
 import Update from "@material-ui/icons/Update";
 import Search from "@material-ui/icons/Search";
@@ -40,10 +40,12 @@ function Dashboard({ enqueueSnackbar }) {
   const [search, setSearch] = React.useState("");
   const [defaultData, setDefaultData] = React.useState([]);
   const [data, setData] = React.useState([]);
-  const [current, setCurrent] = React.useState({});
+  const [current, setCurrent] = React.useState(null);
 
   const getDataTable = () => {
     getAll().then(({data}) => {
+      setData([]);
+      setDefaultData([]);
       setData(data.data);
       setDefaultData(data.data);
     });
@@ -60,7 +62,7 @@ function Dashboard({ enqueueSnackbar }) {
       return;
     }
     const text = search.toUpperCase();
-    const tableData = data.filter((d) => d.name.toUpperCase().includes(text));
+    const tableData = data.filter((d) => d.patient.name.toUpperCase().includes(text));
     setData(tableData);
   };
 
@@ -71,14 +73,53 @@ function Dashboard({ enqueueSnackbar }) {
 
   const handleClose = () => {
     setOpen(false);
-    setCurrent({});
+    setCurrent(null);
   };
 
   const handleConfirm = () => {
-    enqueueSnackbar('Medicamentos administrado com sucesso', { variant: 'success' });
+
+    const data = {
+      medicatedAt: new Date()
+    }
+
+    updateMedication(current._id, data).then(() => {
+      enqueueSnackbar('Medicamentos administrados com sucesso', { variant: 'success' });
+      handleClose();
+      getDataTable();
+    })
+    .catch(() => {
+      enqueueSnackbar('Oops! Não foi possível confirmar a administração dos medicamentos', { variant: 'error' });
+    })
+
+  };
+
+  const getTime = (patient) => {
+    const aux = patient.filter((p) => p.ministrated === false);
+
+    return aux[0].targetTime;
   };
 
   React.useEffect(() => getDataTable(), []);
+
+  const renderMedications = () =>
+  <>
+    <div className={classes.item}>
+      <GridContainer>
+        <GridItem xs={12} sm={6} md={3}>
+          <strong className={classes.info}>{current?.medication.name} - {current?.medication.form}</strong>
+        </GridItem>
+        <GridItem xs={12} sm={6} md={3}>
+          <strong className={classes.info}>{current?.dose}</strong>
+        </GridItem>
+        <GridItem xs={12} sm={6} md={3}>
+          <strong className={classes.info}>{current?.instructions}</strong>
+        </GridItem>
+        <GridItem xs={12} sm={6} md={3}>
+          <strong className={classes.info}>{formatDateTime(current? getTime(current.medicatedStory) : null)}</strong>
+        </GridItem>
+      </GridContainer>
+    </div>
+  </>
 
   return (
     <div>
@@ -107,16 +148,16 @@ function Dashboard({ enqueueSnackbar }) {
             <GridItem xs={12} sm={6} md={3} key={patient._id}>
               <Card>
                 <CardHeader color="warning" stats icon>
-                  <CardIcon image={patient.url} />
+                  <CardIcon image={patient.patient.url} />
                   <h3 className={classes.cardTitle}>
-                    {patient.name}
+                    {patient.patient.name}
                   </h3>
-                  <p className={classes.cardCategory}>Data / Horário</p>
+                  <p className={classes.cardCategory}>{formatDateTime(getTime(patient.medicatedStory))}</p>
                 </CardHeader>
                 <CardFooter stats>
                   <div className={classes.stats}>
                     <Update />
-                    Regressiva
+                    <Timer date={getTime(patient.medicatedStory)} />
                   </div>
                   <Link
                     underline="always"
@@ -139,50 +180,56 @@ function Dashboard({ enqueueSnackbar }) {
               <Card>
                 <CardBody className={classes.cardCategory} >
                   <h3 className={classes.cardTitle}>
-                    Dados do Paciente {current.name}
+                    Dados do Paciente {current?.name}
                   </h3>
                   <GridContainer>
                     <GridItem xs={12} sm={6} md={4}>
-                      Nome:<strong className={classes.info}>{current.name}</strong>
+                      Nome:<strong className={classes.info}>{current?.patient.name}</strong>
                     </GridItem>
                     <GridItem xs={12} sm={6} md={4}>
-                      CPF:<strong className={classes.info}>{current.cpf}</strong>
+                      CPF:<strong className={classes.info}>{current?.patient.cpf}</strong>
                     </GridItem>
                     <GridItem xs={12} sm={6} md={4}>
-                      Data de Nascimento:<strong className={classes.info}>{formatDate(current.birth)}</strong>
-                    </GridItem>
-                  </GridContainer>
-                  <GridContainer>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Idade:<strong className={classes.info}>{current.age}</strong>
-                    </GridItem>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Peso:<strong className={classes.info}>{current.weight} Kg</strong>
-                    </GridItem>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Altura:<strong className={classes.info}>{current.height}</strong>
+                      Data de Nascimento:<strong className={classes.info}>{formatDate(current?.patient.birth)}</strong>
                     </GridItem>
                   </GridContainer>
                   <GridContainer>
                     <GridItem xs={12} sm={6} md={4}>
-                      Observações:<strong className={classes.info}>{current.comments}</strong>
+                      Idade:<strong className={classes.info}>{current?.patient.age}</strong>
+                    </GridItem>
+                    <GridItem xs={12} sm={6} md={4}>
+                      Peso:<strong className={classes.info}>{current?.patient.weight} Kg</strong>
+                    </GridItem>
+                    <GridItem xs={12} sm={6} md={4}>
+                      Altura:<strong className={classes.info}>{current?.patient.height}</strong>
+                    </GridItem>
+                  </GridContainer>
+                  <GridContainer>
+                    <GridItem xs={12} sm={6} md={4}>
+                      Observações:<strong className={classes.info}>{current?.patient.comments}</strong>
                     </GridItem>
                   </GridContainer>
                   <Divider className={classes.divider} />
                   <h3 className={classes.cardTitle}>
                     Medicamentos
                   </h3>
-                  <GridContainer>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Nome
-                    </GridItem>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Quantidade
-                    </GridItem>
-                    <GridItem xs={12} sm={6} md={4}>
-                      Tipo
-                    </GridItem>
-                  </GridContainer>
+                  <div>
+                    <GridContainer>
+                      <GridItem xs={12} sm={6} md={3}>
+                        Nome
+                      </GridItem>
+                      <GridItem xs={12} sm={6} md={3}>
+                        Dosagem
+                      </GridItem>
+                      <GridItem xs={12} sm={6} md={3}>
+                        Instruções
+                      </GridItem>
+                      <GridItem xs={12} sm={6} md={3}>
+                        Horário
+                      </GridItem>
+                    </GridContainer>
+                  </div>
+                  {renderMedications()}
                 </CardBody>
                 <CardFooter stats>
                   <div/>
@@ -190,9 +237,11 @@ function Dashboard({ enqueueSnackbar }) {
                     <Button
                       className={classes.cancel}
                       onClick={handleClose}>Cancelar</Button>
-                    <Button
+                    {
+                      validateAccess([1,2,5]) &&  <Button
                       color="success"
                       onClick={handleConfirm}>Confirmar Administração</Button>
+                    }
                   </div>
                 </CardFooter>
               </Card>

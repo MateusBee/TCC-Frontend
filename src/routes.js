@@ -20,6 +20,7 @@ const Routes = [
     component: DashboardPage,
     layout: "/easy-farmaco",
     menu: true,
+    access: [1,2,3,4,5]
   },
   {
     path: "/pacientes",
@@ -28,6 +29,7 @@ const Routes = [
     component: Patients,
     layout: "/easy-farmaco",
     menu: true,
+    access: [1,2,4,5]
   },
   {
     path: "/medicamentos",
@@ -36,6 +38,7 @@ const Routes = [
     component: Medicines,
     layout: "/easy-farmaco",
     menu: true,
+    access: [1,2,5]
   },
   {
     path: "/protocolos",
@@ -44,6 +47,7 @@ const Routes = [
     component: Protocols,
     layout: "/easy-farmaco",
     menu: true,
+    access: [1,2,3,4,5]
   },
   {
     path: "/usuarios",
@@ -52,6 +56,7 @@ const Routes = [
     component: Users,
     layout: "/easy-farmaco",
     menu: true,
+    access: [4,5]
   },
   {
     path: "/perfil",
@@ -60,6 +65,7 @@ const Routes = [
     component: Profile,
     layout: "/easy-farmaco",
     menu: false,
+    access: [1,2,3,4,5]
   },
 ];
 

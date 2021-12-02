@@ -2,6 +2,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { withSnackbar } from 'notistack';
+// Utils
+import { validateAccess } from "utils/Access";
 // Services
 import { uploadFile, getAll, createFile, deleteFile } from "services/file";
 // @material-ui/core components
@@ -200,11 +202,15 @@ function Protocols({ enqueueSnackbar }) {
         {formProtocols()}
         <GridItem xs={12} sm={12} md={12}>
           <Card>
-          <CardFooter>
-              <Button
-              styles={{ marginTop: 10 }}
-              color="primary"
-              onClick={handleOpen}>Novo Documento</Button>
+            <CardFooter>
+              {
+                validateAccess([4,5])
+                  ? <Button
+                    styles={{ marginTop: 10 }}
+                    color="primary"
+                    onClick={handleOpen}>Novo Documento</Button>
+                  : <div/>
+              }
               <div className={classes.searchWrapper}>
                 <CustomInput
                   formControlProps={{
@@ -238,7 +244,8 @@ function Protocols({ enqueueSnackbar }) {
                 setCurrent={setCurrent}
                 actions={(
                 <>
-                  <Tooltip
+                  {
+                    validateAccess([4,5]) && <Tooltip
                     id="tooltip-top-start"
                     title="Excluir"
                     placement="top"
@@ -257,6 +264,7 @@ function Protocols({ enqueueSnackbar }) {
                       />
                     </IconButton>
                   </Tooltip>
+                  }
                 </>
                 )}
                 showFile={(

@@ -120,6 +120,12 @@ const dashboardStyle = (theme) => ({
   divider: {
     margin: "15px 0px",
   },
+  item: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: "7px",
+    padding: "6px 0px 6px 0px",
+    marginBottom: "10px",
+  }
 });
 
 export default dashboardStyle;

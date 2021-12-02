@@ -3,6 +3,8 @@ import React from "react";
 import classNames from "classnames";
 import PropTypes from "prop-types";
 import { NavLink, useLocation } from "react-router-dom";
+// Utils
+import { validateAccess } from "utils/Access";
 // @font-awesome icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPills } from "@fortawesome/free-solid-svg-icons";
@@ -34,7 +36,7 @@ export default function Sidebar(props) {
   var links = (
     <List className={classes.list}>
       {routes.map((prop, key) => {
-        if (!prop.menu) return;
+        if (!prop.menu || !validateAccess(prop.access)) return;
         const listItemClasses = classNames({
             [" " + classes[color]]: activeRoute(prop.layout + prop.path),
           });

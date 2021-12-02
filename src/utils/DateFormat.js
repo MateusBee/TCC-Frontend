@@ -11,6 +11,22 @@ export function formatDate(date = currentDate) {
   return newDate
 }
 
+export function formatDateTime(date = currentDate) {
+  const newDate = format(new Date(date), 'dd/MM HH:mm', {
+    locale: ptBR,
+  });
+
+  return newDate;
+}
+
+export function formatTime(date = currentDate) {
+  const newDate = format(new Date(date), 'HH:mm:ss', {
+    locale: ptBR,
+  });
+
+  return newDate;
+}
+
 export function validateDate(date) {
   return (isValid(new Date(date)) && date.length >= 10);
 }

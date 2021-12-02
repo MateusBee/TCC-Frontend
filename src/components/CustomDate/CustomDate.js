@@ -25,7 +25,7 @@ export default function InputDate({ value, onChange, ...props }) {
         onChange={onChange}
         // shouldDisableDate={(day) => day.getDay() === 0}
         // animateYearScrolling={false}
-        maxDate={new Date()}
+        // maxDate={new Date()}
         invalidDateMessage="Data Inválida"
         {...props}
       />
